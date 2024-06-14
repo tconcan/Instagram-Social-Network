@@ -1,9 +1,10 @@
 class Node {
-    constructor(x, y, name, color) {
-        this.adj = []
-        this.degree = this.adj.length
-        this.name = name
-        this.color = color
+    constructor(x, y, name, color, radius) {
+        this.adj = [];
+        this.degree = this.adj.length;
+        this.name = name;
+        this.color = color;
+        this.radius = radius;
         this.x = x;
         this.y = y;
         this.vx = 0;
@@ -46,16 +47,22 @@ class Graph {
         return this.edges;
     }
 
-    addNodesAndEdges(n, density, color) {
-        this.addRandomNodes(n, color);
+    setNodeColor(color) {
+        this.nodes.forEach(node => {
+            node.color = color;
+        });
+    }
+
+    addNodesAndEdges(n, density, color, radius) {
+        this.addRandomNodes(n, color, radius);
         this.addEdgesWithDensity(density);
     }
 
-    addRandomNodes(n, color) {
+    addRandomNodes(n, color, radius) {
         for (let i = 0; i < n; i++) {
             let x = Math.random();
             let y = Math.random();
-            this.addNode(new Node(x, y, "Node " + i.toString(), color));
+            this.addNode(new Node(x, y, "Node " + i.toString(), color, radius));
         }
     }
 
@@ -74,7 +81,7 @@ class Graph {
         }
     }
 
-    addEdgeList(edgeList, color) {
+    addEdgeList(edgeList, color, radius) {
         const lines = edgeList.split('\n');
         const nodeMap = new Map();
 
@@ -83,14 +90,14 @@ class Graph {
 
             let node1 = nodeMap.get(name1);
             if (!node1) {
-                node1 = new Node(Math.random(), Math.random(), name1, color);
+                node1 = new Node(Math.random(), Math.random(), name1, color, radius);
                 this.addNode(node1);
                 nodeMap.set(name1, node1);
             }
 
             let node2 = nodeMap.get(name2);
             if (!node2) {
-                node2 = new Node(Math.random(), Math.random(), name2, color);
+                node2 = new Node(Math.random(), Math.random(), name2, color, radius);
                 this.addNode(node2);
                 nodeMap.set(name2, node2);
             }
@@ -99,7 +106,7 @@ class Graph {
         }
     }
 
-    plot(context, canvasWidth, canvasHeight, nodeSize=7, edgeColor="black", edgeThickness=1) {
+    plot(context, canvasWidth, canvasHeight, edgeColor="black", edgeThickness=1) {
         
         context.strokeStyle = edgeColor;
         context.lineWidth = edgeThickness;
@@ -117,9 +124,8 @@ class Graph {
             context.fillStyle = node.color;
             let x = node.x * canvasWidth;
             let y = canvasHeight - node.y * canvasHeight;
-            let radius = nodeSize;
             context.beginPath();
-            context.arc(x, y, radius, 0, 2 * Math.PI, false);
+            context.arc(x, y, node.radius, 0, 2 * Math.PI, false);
             context.fill();
             context.strokeStyle = "black";
             context.lineWidth = 2;
@@ -203,6 +209,13 @@ let context;
 let canvasWidth;
 let canvasHeight;
 let mode = 1;
+let nodeColor;
+let isPaused = false;
+
+function togglePause() {
+    isPaused = !isPaused;
+    document.getElementById('pauseButton').textContent = isPaused ? 'Resume' : 'Pause';
+}
 
 function verifyEdgeList(edgeList) {
 
@@ -213,23 +226,35 @@ function verifyEdgeList(edgeList) {
     const lines = edgeList.split('\n');
     for (let i = 0; i < lines.length; i++) {
         if(!/^[\w\s\d\-']+, [\w\s\d\-']+$/.test(lines[i])) {
-            console.log(lines[i]);
             return false;
         }
     }
     return true;
 }
 
+function inBounds(event, min, max, int) {
+    const input = event.target;
+    if(input.value === "") {
+        return;
+    } else if (input.value < min) {
+        input.value = min;
+    } else if (input.value > max) {
+        input.value = max;
+    } else if (int) {
+        input.value = Math.floor(input.value);
+    }
+
+}
+
 function updateGraph() {
     cancelAnimationFrame(animationId);
-    const color = document.getElementById("colorPicker").value;
 
     if (mode === 1) {
         const nodes = parseInt(document.getElementById("nodes").value);
         const density = parseFloat(document.getElementById("density").value);
 
         graph = new Graph();
-        graph.addNodesAndEdges(nodes, density, color);
+        graph.addNodesAndEdges(nodes, density, nodeColor, 7);
 
     } else if (mode === 2) {
         const edgeList = document.getElementById("edges").value.trim();
@@ -240,22 +265,33 @@ function updateGraph() {
         else {
             graph = new Graph();
             if (edgeList !== ""){
-                graph.addEdgeList(edgeList, color);
+                graph.addEdgeList(edgeList, nodeColor, 7);
             }
         }
-        console.log(graph.getNodes());
     }
-
+    
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+    graph.plot(context, canvasWidth, canvasHeight);
     function animate() {
-        let k1 = 10 ** document.getElementById("sliderR").value;
-        let k2 = 10 ** document.getElementById("sliderA").value;
-        let k3 = 10 ** document.getElementById("sliderG").value;
-        let k4 = 1 - document.getElementById("sliderF").value;
-        context.clearRect(0, 0, canvasWidth, canvasHeight);
-        graph.plot(context, canvasWidth, canvasHeight);
-        forceCalc(graph.nodes, canvasHeight, canvasWidth, k1, k2, k3);
-        updateVel(graph.nodes, 0.0001, k4);
-        updatePos(graph.nodes, 0.0001);
+        if(!isPaused) {
+            nodeColor = document.getElementById("colorPicker").value;
+            let k1 = 10 ** document.getElementById("sliderR").value;
+            if (k1 == 1) {
+                k1 = 0;
+            }
+            let k2 = 10 ** document.getElementById("sliderA").value;
+            if (k2 == 1) {
+                k2 = 0;
+            }
+            let k3 = document.getElementById("sliderG").value;
+            let k4 = 1 - document.getElementById("sliderF").value;
+            forceCalc(graph.nodes, canvasHeight, canvasWidth, k1, k2, k3);
+            updateVel(graph.nodes, 0.0001, k4);
+            updatePos(graph.nodes, 0.0001);
+            graph.setNodeColor(nodeColor);
+            context.clearRect(0, 0, canvasWidth, canvasHeight);
+            graph.plot(context, canvasWidth, canvasHeight);
+        }
         animationId = requestAnimationFrame(animate);
     }
 
@@ -265,12 +301,12 @@ function updateGraph() {
 window.onload = function() {
 
     canvas = document.getElementById("graphCanvas");
-    const boxSize = Math.min(window.innerHeight, window.innerWidth) * 0.8;
+    const boxSize = Math.min(window.innerHeight, window.innerWidth - 300) * 0.8;
     canvas.width = boxSize;
     canvas.height = boxSize;
     context = canvas.getContext("2d");
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
-    
+
     updateGraph();
 }
