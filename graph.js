@@ -1,8 +1,9 @@
 class Node {
-    constructor(x, y, name) {
+    constructor(x, y, name, color) {
         this.adj = []
         this.degree = this.adj.length
         this.name = name
+        this.color = color
         this.x = x;
         this.y = y;
         this.vx = 0;
@@ -45,16 +46,16 @@ class Graph {
         return this.edges;
     }
 
-    addNodesAndEdges(n, density) {
-        this.addRandomNodes(n);
+    addNodesAndEdges(n, density, color) {
+        this.addRandomNodes(n, color);
         this.addEdgesWithDensity(density);
     }
 
-    addRandomNodes(n) {
+    addRandomNodes(n, color) {
         for (let i = 0; i < n; i++) {
             let x = Math.random();
             let y = Math.random();
-            this.addNode(new Node(x, y, "Node " + i.toString()));
+            this.addNode(new Node(x, y, "Node " + i.toString(), color));
         }
     }
 
@@ -73,7 +74,7 @@ class Graph {
         }
     }
 
-    addEdgeList(edgeList) {
+    addEdgeList(edgeList, color) {
         const lines = edgeList.split('\n');
         const nodeMap = new Map();
 
@@ -82,14 +83,14 @@ class Graph {
 
             let node1 = nodeMap.get(name1);
             if (!node1) {
-                node1 = new Node(Math.random(), Math.random(), name1);
+                node1 = new Node(Math.random(), Math.random(), name1, color);
                 this.addNode(node1);
                 nodeMap.set(name1, node1);
             }
 
             let node2 = nodeMap.get(name2);
             if (!node2) {
-                node2 = new Node(Math.random(), Math.random(), name2);
+                node2 = new Node(Math.random(), Math.random(), name2, color);
                 this.addNode(node2);
                 nodeMap.set(name2, node2);
             }
@@ -98,7 +99,7 @@ class Graph {
         }
     }
 
-    plot(context, canvasWidth, canvasHeight, nodeColor="red", nodeSize=7, edgeColor="black", edgeThickness=1) {
+    plot(context, canvasWidth, canvasHeight, nodeSize=7, edgeColor="black", edgeThickness=1) {
         
         context.strokeStyle = edgeColor;
         context.lineWidth = edgeThickness;
@@ -112,9 +113,8 @@ class Graph {
             context.lineTo(x2, y2);
         });
         context.stroke();
-
-        context.fillStyle = nodeColor;
         this.nodes.forEach(node => {
+            context.fillStyle = node.color;
             let x = node.x * canvasWidth;
             let y = canvasHeight - node.y * canvasHeight;
             let radius = nodeSize;
@@ -206,6 +206,10 @@ let mode = 1;
 
 function verifyEdgeList(edgeList) {
 
+    if (edgeList === "") {
+        return true;
+    }
+
     const lines = edgeList.split('\n');
     for (let i = 0; i < lines.length; i++) {
         if(!/^[\w\s\d\-']+, [\w\s\d\-']+$/.test(lines[i])) {
@@ -218,13 +222,14 @@ function verifyEdgeList(edgeList) {
 
 function updateGraph() {
     cancelAnimationFrame(animationId);
+    const color = document.getElementById("colorPicker").value;
 
     if (mode === 1) {
         const nodes = parseInt(document.getElementById("nodes").value);
         const density = parseFloat(document.getElementById("density").value);
 
         graph = new Graph();
-        graph.addNodesAndEdges(nodes, density);
+        graph.addNodesAndEdges(nodes, density, color);
 
     } else if (mode === 2) {
         const edgeList = document.getElementById("edges").value.trim();
@@ -234,7 +239,9 @@ function updateGraph() {
         }
         else {
             graph = new Graph();
-            graph.addEdgeList(edgeList);
+            if (edgeList !== ""){
+                graph.addEdgeList(edgeList, color);
+            }
         }
         console.log(graph.getNodes());
     }
