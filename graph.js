@@ -106,6 +106,17 @@ class Graph {
         }
     }
 
+    starfish(arms, armLength, color, radius) {
+        
+        for(let arm = 0; arm < arms; arm++) {
+            prev = 0;
+            while(node <= arm * armLength + armLength){
+                graph
+            }
+        }
+    }
+
+
     plot(context, canvasWidth, canvasHeight, edgeColor="black", edgeThickness=1) {
         
         context.strokeStyle = edgeColor;
@@ -120,15 +131,15 @@ class Graph {
             context.lineTo(x2, y2);
         });
         context.stroke();
+        context.strokeStyle = "black";
+        context.lineWidth = 2;
         this.nodes.forEach(node => {
+            context.beginPath();
             context.fillStyle = node.color;
             let x = node.x * canvasWidth;
             let y = canvasHeight - node.y * canvasHeight;
-            context.beginPath();
             context.arc(x, y, node.radius, 0, 2 * Math.PI, false);
             context.fill();
-            context.strokeStyle = "black";
-            context.lineWidth = 2;
             context.stroke();
         });
     }
@@ -137,51 +148,59 @@ class Graph {
 function changeSettings(option){
     const randomControls = document.getElementById('randomControls');
     const edgeListControls = document.getElementById('edgeListControls');
+    const starfishControls = document.getElementById('starfishControls');
 
     if (option === 'random') {
         randomControls.style.display = '';
         edgeListControls.style.display = 'none';
+        starfishControls.style.display = 'none';
         mode = 1;
     } else if (option === 'edge') {
         randomControls.style.display = 'none';
         edgeListControls.style.display = 'flex';
+        starfishControls.style.display = 'none';
         mode = 2;
+    } else if (option === 'star') {
+        randomControls.style.display = 'none';
+        edgeListControls.style.display = 'none';
+        starfishControls.style.display = '';
+        mode = 3;
     }
     updateGraph();
 }
 
-function forceCalc(nodes, canvasHeight, canvasWidth, k1, k2, k3){
+function forceCalc(nodes, canvasHeight, canvasWidth, r, a, g){
     
     nodes.forEach(node => {
         node.fx = 0;
         node.fy = 0;
 
-        // repulsive force
+        // Repulsion
         nodes.forEach(other => {
             if (node !== other) {
                 let dx = node.x - other.x;
                 let dy = node.y - other.y;
                 let d = Math.sqrt(dx * dx + dy * dy);
-                let force = k1 / d;
-                node.fx += force * dx / d;
-                node.fy += force * dy / d;
+                let f = r / d ** 2;
+                node.fx += f * dx;
+                node.fy += f * dy;
             }
         });
 
-        // attractive force
+        // Attraction
         node.adj.forEach(other => {
             let dx = node.x - other.x;
             let dy = node.y - other.y;
             let d = Math.sqrt(dx * dx + dy * dy);
-            let force = - (k2 ** 2) * d;
-            node.fx += force * dx / d;
-            node.fy += force * dy / d;
+            let f = - a * d;
+            node.fx += f * dx;
+            node.fy += f * dy;
+    
         });
 
-        // gravitational force
-        node.fx += k3 * (canvasWidth / 2 - node.x * canvasWidth);
-        node.fy += k3 * (canvasHeight / 2 - node.y * canvasHeight);
-
+        // Gravity
+        node.fx += g * (canvas.width / 2 - node.x * canvasWidth);
+        node.fy += g * (canvas.height / 2 - node.y * canvasHeight);
     });
 
 }
@@ -243,12 +262,11 @@ function inBounds(event, min, max, int) {
     } else if (int) {
         input.value = Math.floor(input.value);
     }
-
 }
 
 function updateGraph() {
-    cancelAnimationFrame(animationId);
 
+    cancelAnimationFrame(animationId);
     if (mode === 1) {
         const nodes = parseInt(document.getElementById("nodes").value);
         const density = parseFloat(document.getElementById("density").value);
@@ -268,10 +286,17 @@ function updateGraph() {
                 graph.addEdgeList(edgeList, nodeColor, 7);
             }
         }
+    } else if (mode === 3) {
+        const arms = parseInt(document.getElementById("arms").value);
+        const armsLength = parseInt(document.getElementById("arm_length").value);
+
+        graph = new Graph();
+        graph.starfish(arms, armsLength, nodeColor, 7);
     }
     
     context.clearRect(0, 0, canvasWidth, canvasHeight);
     graph.plot(context, canvasWidth, canvasHeight);
+    
     function animate() {
         if(!isPaused) {
             nodeColor = document.getElementById("colorPicker").value;
@@ -283,7 +308,10 @@ function updateGraph() {
             if (k2 == 1) {
                 k2 = 0;
             }
-            let k3 = document.getElementById("sliderG").value;
+            let k3 = 10 ** document.getElementById("sliderG").value;
+            if (k3 == 1) {
+                k3 = 0;
+            }
             let k4 = 1 - document.getElementById("sliderF").value;
             forceCalc(graph.nodes, canvasHeight, canvasWidth, k1, k2, k3);
             updateVel(graph.nodes, 0.0001, k4);
