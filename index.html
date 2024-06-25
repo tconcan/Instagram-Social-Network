@@ -59,12 +59,14 @@
             <td>
                 <div id="controls">
                     <div class="row">
-                        <input type="radio" id="random" name="mode" checked onclick="changeSettings('random')">
+                        <input type="radio" id="random" name="mode" checked onclick="changeMode('random')">
                         <label for="option1">Random</label>
-                        <input type="radio" id="edgeList" name="mode" onclick="changeSettings('edge')">
+                        <input type="radio" id="edgeList" name="mode" onclick="changeMode('edge')">
                         <label for="option2">Edge List</label>
-                        <input type="radio" id="starfish" name="mode" onclick="changeSettings('star')">
+                        <input type="radio" id="starfish" name="mode" onclick="changeMode('star')">
                         <label for="option2">Starfish</label>
+                        <input type="radio" id="fractal" name="mode" onclick="changeMode('fractal')">
+                        <label for="option2">Fractal</label>
                     </div>
 
                     <div id="randomControls" class="row">
@@ -87,6 +89,13 @@
                         <input type="number" id="arms" min="2" max="100" value="5" step="1" oninput="inBounds(event, 2, 100, 1)">
                         <label for="arm_length">Arm Size</label>
                         <input type="number" id="arm_length" min="0" max="100" value="20" step="1" oninput="inBounds(event, 0, 100, 1)">
+                    </div>
+
+                    <div id="fractalControls" class="row">
+                        <label for="degree">Degree</label>
+                        <input type="number" id="degree" min="2" max="5" value="2" step="1" oninput="inBounds(event, 2, 5, 1)">
+                        <label for="depth">Depth</label>
+                        <input type="number" id="depth" min="1" max="10" value="5" step="1" oninput="inBounds(event, 1, 10, 1)">
                     </div>
 
                     <button onclick="updateGraph()">Build Graph!</button>

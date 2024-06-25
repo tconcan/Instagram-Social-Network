@@ -66,7 +66,7 @@ class Graph {
         return this.edges;
     }
 
-    generateRandom(n, density, color="red", radius=7) {
+    generateRandom(n, density, color=document.getElementById("colorPicker").value, radius=7) {
         for(let i = 0; i < n; i++){
             this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
         }
@@ -82,17 +82,50 @@ class Graph {
         }
     }
 
+    generateStarfish(arms, armLength, color=document.getElementById("colorPicker").value, radius=7) {
+        for(let i = 0; i < arms * armLength + 1; i++){
+            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+        }
+        let node = 1;
+        for(let arm = 0; arm < arms; arm++){
+            let prev = 0;
+            while(node < arm * armLength + armLength + 1) {
+                this.addEdge(new Edge(this.nodes[prev], this.nodes[node]));
+                console.log(prev, node);
+                prev = node;
+                node++;
+            }
+        }
+    }
+
+    generateFractal(depth, degree, color=document.getElementById("colorPicker").value, radius=7) {
+        
+        let numNodes = 0;
+        for(let i = 0; i <= depth; i++){
+            numNodes += degree ** i;
+        }
+        for(let i = 0; i < numNodes; i++){
+            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+        }
+
+        let numRoots = numNodes - degree ** depth;
+        for(let i = 0; i < numRoots; i++){
+            for(let j = 0; j < degree; j++){
+                this.addEdge(new Edge(this.nodes[i], this.nodes[i * degree + j + 1]));
+            }
+        }
+
+    }
+
     plotGraph() {
-        context.beginPath();
-        context.strokeStyle = "black";
-        context.lineWidth = 0.5;
-
         this.edges.forEach(edge => {
-
+            context.beginPath();
+            context.strokeStyle = edge.color;
+            context.lineWidth = edge.width;
             context.moveTo(edge.node1.cx, edge.node1.cy);
             context.lineTo(edge.node2.cx, edge.node2.cy);
+            context.stroke();
         });
-        context.stroke();
         context.strokeStyle = "black";
         context.lineWidth = 2;
         this.nodes.forEach(node => {
@@ -116,7 +149,7 @@ updateForce = function(nodes, r, a, g) {
                 let dx = node.x - other.x;
                 let dy = node.y - other.y;
                 let d = Math.sqrt(dx * dx + dy * dy);
-                let f = r / d;
+                let f = r / d ** 2;
                 node.fx += f * dx;
                 node.fy += f * dy;
             }
@@ -135,7 +168,7 @@ updateForce = function(nodes, r, a, g) {
 
         // Gravity
         node.fx += g * (canvas.width / 2 - node.cx);
-        node.fy += g * (canvas.height / 2 - node.cy);
+        node.fy += g * (canvas.height / 2 - (canvas.height - node.cy));
     });
 }
 
@@ -152,6 +185,8 @@ function updatePos(nodes, stepSize) {
     nodes.forEach(node => {
         node.x += stepSize * node.vx;
         node.y += stepSize * node.vy;
+        node.cx = node.x * canvas.width;
+        node.cy = canvas.height - node.y * canvas.height;
     });
 }
 
@@ -188,6 +223,31 @@ function togglePause() {
     document.getElementById('pauseButton').textContent = isPaused ? 'Resume' : 'Pause';
 }
 
+function changeMode(newMode) {
+
+    const randomControls = document.getElementById('randomControls');
+    const edgeListControls = document.getElementById('edgeListControls');
+    const starfishControls = document.getElementById('starfishControls');
+    const fractalControls = document.getElementById('fractalControls');
+
+    randomControls.style.display = 'none';
+    edgeListControls.style.display = 'none';
+    starfishControls.style.display = 'none';
+    fractalControls.style.display = 'none';
+
+    if(newMode === "random") {
+        randomControls.style.display = 'flex';
+    } else if(newMode === "edge") {
+        edgeListControls.style.display = 'flex';
+    } else if(newMode === "star") {
+        starfishControls.style.display = 'flex';
+    } else if(newMode === "fractal") { 
+        fractalControls.style.display = 'flex';
+    }
+    mode = newMode;
+
+}
+
 function updateGraph() {
 
     cancelAnimationFrame(animationId);
@@ -208,7 +268,7 @@ function updateGraph() {
             graph = new Graph();
             if (edgeList !== ""){
                 alert("Add function");
-                graph.addEdgeList(edgeList, nodeColor, 7);
+                graph.addEdgeList(edgeList);
             }
         }
     } else if (mode === "star") {
@@ -216,7 +276,13 @@ function updateGraph() {
         const armsLength = parseInt(document.getElementById("arm_length").value);
 
         graph = new Graph();
-        graph.generateRandom(nodes, density, nodeColor, 4);
+        graph.generateStarfish(arms, armsLength);
+    } else if (mode === "fractal") {
+        const depth = parseInt(document.getElementById("depth").value);
+        const degree = parseInt(document.getElementById("degree").value);
+
+        graph = new Graph();
+        graph.generateFractal(depth, degree);
     }
 
     function animate() {
@@ -238,12 +304,12 @@ function updateGraph() {
             updateForce(graph.nodes, k1, k2, k3);
             updateVel(graph.nodes, 0.0001, k4);
             updatePos(graph.nodes, 0.0001);
-            console.log(graph.nodes[0].fx, graph.nodes[0].fy)
+            // console.log(graph.nodes[0].vx, graph.nodes[0].vy)
             graph.setNodeColor(nodeColor);
             context.clearRect(0, 0, canvas.width, canvas.height);
             graph.plotGraph();
         }
-        // animationId = requestAnimationFrame(animate);
+        animationId = requestAnimationFrame(animate);
     }
 
     animate();
@@ -257,5 +323,6 @@ window.onload = function() {
     canvas.height = boxSize;
     context = canvas.getContext("2d");
     
+    changeMode(mode);
     updateGraph();
 }
