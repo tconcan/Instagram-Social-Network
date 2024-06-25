@@ -66,19 +66,27 @@ class Graph {
         return this.edges;
     }
 
-    generateRandom(n, density, color=document.getElementById("colorPicker").value, radius=7) {
+    generateRandom(n, density, maxDegree, color=document.getElementById("colorPicker").value, radius=7) {
+
         for(let i = 0; i < n; i++){
             this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
         }
-        let numEdges = Math.floor(density * n * (n - 1) / 2);
-        for(let i = 0; i < numEdges; i++){
+        if(maxDegree > n - 1){
+            maxDegree = n - 1;
+        }
+        let numEdges = Math.floor(density * n * maxDegree / 2);
+        let j = 0;
+        let i = 0;  
+        while(i < numEdges && j < numEdges * 100){
             let node1 = this.nodes[Math.floor(Math.random() * n)];
             let node2 = this.nodes[Math.floor(Math.random() * n)];
-            if (node1 !== node2 && !node1.adj.includes(node2)) {
+            if (node1 !== node2 && !node1.adj.includes(node2) && node1.degree < maxDegree && node2.degree < maxDegree) {
                 this.addEdge(new Edge(node1, node2));
             } else {
                 i--; 
             }
+            i++;
+            j++;
         }
     }
 
@@ -91,7 +99,6 @@ class Graph {
             let prev = 0;
             while(node < arm * armLength + armLength + 1) {
                 this.addEdge(new Edge(this.nodes[prev], this.nodes[node]));
-                console.log(prev, node);
                 prev = node;
                 node++;
             }
@@ -117,6 +124,29 @@ class Graph {
 
     }
 
+    generateEdgeList(edgeList, color=document.getElementById("colorPicker").value, radius=7) {
+        const lines = edgeList.split('\n');
+        const nodeMap = new Map();
+
+        for(let line of lines){
+            const [name1, name2] = line.split(',').map(s => s.trim());
+            let node1 = nodeMap.get(name1);
+            if (!node1) {
+                node1 = new Node(name1, color, radius);
+                this.addNode(node1);
+                nodeMap.set(name1, node1);
+            }
+            
+            let node2 = nodeMap.get(name2);
+            if (!node2) {
+                node2 = new Node(name2, color, radius);
+                this.addNode(node2);
+                nodeMap.set(name2, node2);
+            }
+            
+            this.addEdge(new Edge(node1, node2));
+        }
+    }
     plotGraph() {
         this.edges.forEach(edge => {
             context.beginPath();
@@ -139,6 +169,9 @@ class Graph {
 }
 
 updateForce = function(nodes, r, a, g) {
+
+    let f = 0;
+
     nodes.forEach(node => {
         node.fx = 0;
         node.fy = 0;
@@ -161,15 +194,22 @@ updateForce = function(nodes, r, a, g) {
             let dy = node.y - other.y;
             let d = Math.sqrt(dx * dx + dy * dy);
             let f = - a * d;
+            if(f < -50000000){
+                f = -50000000;
+            }
             node.fx += f * dx;
             node.fy += f * dy;
-    
         });
 
         // Gravity
         node.fx += g * (canvas.width / 2 - node.cx);
         node.fy += g * (canvas.height / 2 - (canvas.height - node.cy));
+
+        f += Math.sqrt(node.fx ** 2 + node.fy ** 2);
     });
+
+    avgf = f / nodes.length;
+    return avgf;
 }
 
 function updateVel(nodes, stepSize, damping) {
@@ -254,9 +294,10 @@ function updateGraph() {
     if (mode === "random") {
         const nodes = parseInt(document.getElementById("nodes").value);
         const density = parseFloat(document.getElementById("density").value);
+        const maxDegree = parseInt(document.getElementById("maxDegree").value);
 
         graph = new Graph();
-        graph.generateRandom(nodes, density);
+        graph.generateRandom(nodes, density, maxDegree);
 
     } else if (mode === "edge") {
         const edgeList = document.getElementById("edges").value.trim();
@@ -267,8 +308,7 @@ function updateGraph() {
         else {
             graph = new Graph();
             if (edgeList !== ""){
-                alert("Add function");
-                graph.addEdgeList(edgeList);
+                graph.generateEdgeList(edgeList);
             }
         }
     } else if (mode === "star") {
@@ -301,10 +341,9 @@ function updateGraph() {
                 k3 = 0;
             }
             let k4 = 1 - document.getElementById("sliderF").value;
-            updateForce(graph.nodes, k1, k2, k3);
+            let avgf = updateForce(graph.nodes, k1, k2, k3);
             updateVel(graph.nodes, 0.0001, k4);
             updatePos(graph.nodes, 0.0001);
-            // console.log(graph.nodes[0].vx, graph.nodes[0].vy)
             graph.setNodeColor(nodeColor);
             context.clearRect(0, 0, canvas.width, canvas.height);
             graph.plotGraph();
