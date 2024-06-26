@@ -61,12 +61,14 @@
                     <div class="row">
                         <input type="radio" id="random" name="mode" checked onclick="changeMode('random')">
                         <label for="option1">Random</label>
+                        <input type="radio" id="starfish" name="mode" onclick="changeMode('star')">
+                        <label for="option3">Starfish</label>
+                        <input type="radio" id="flower" name="mode" onclick="changeMode('flower')">
+                        <label for="option5">Flower</label>
+                        <input type="radio" id="fractal" name="mode" onclick="changeMode('fractal')">
+                        <label for="option4">Fractal</label>
                         <input type="radio" id="edgeList" name="mode" onclick="changeMode('edge')">
                         <label for="option2">Edge List</label>
-                        <input type="radio" id="starfish" name="mode" onclick="changeMode('star')">
-                        <label for="option2">Starfish</label>
-                        <input type="radio" id="fractal" name="mode" onclick="changeMode('fractal')">
-                        <label for="option2">Fractal</label>
                     </div>
 
                     <div id="randomControls" class="row">
@@ -88,7 +90,7 @@
 
                     <div id="starfishControls" class="row">
                         <label for="arms">Arms</label>
-                        <input type="number" id="arms" min="2" max="100" value="5" step="1" oninput="inBounds(event, 2, 100, 1)">
+                        <input type="number" id="arms" min="1" max="100" value="5" step="1" oninput="inBounds(event, 1, 100, 1)">
                         <label for="arm_length">Arm Size</label>
                         <input type="number" id="arm_length" min="0" max="100" value="20" step="1" oninput="inBounds(event, 0, 100, 1)">
                     </div>
@@ -98,6 +100,13 @@
                         <input type="number" id="degree" min="1" max="8" value="2" step="1" oninput="inBounds(event, 1, 8, 1)">
                         <label for="depth">Depth</label>
                         <input type="number" id="depth" min="1" max="10" value="5" step="1" oninput="inBounds(event, 1, 10, 1)">
+                    </div>
+
+                    <div id="flowerControls" class="row">
+                        <label for="petals">Petals</label>
+                        <input type="number" id="petals" min="1" max="50" value="6" step="1" oninput="inBounds(event, 1, 50, 1)">
+                        <label for="petal_size">Petal Size</label>
+                        <input type="number" id="petal_size" min="2" max="200" value="20" step="1" oninput="inBounds(event, 2, 200, 1)">
                     </div>
 
                     <button onclick="updateGraph()">Build Graph!</button>
@@ -124,6 +133,6 @@
             </td>
         </tr>
     </table>
-    <script src="graph2.js"></script>
+    <script src="graph.js"></script>
 </body>
 </html>
