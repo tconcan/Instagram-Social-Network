@@ -3,8 +3,29 @@ let canvas;
 let context;
 let mode = "random";
 let isPaused = false;
+let graph;
 
-class Node {
+class Knode {
+    constructor(color, x, y, radius=10, vx=0, vy=0, fx=0, fy=0){
+        this.color = color;
+        this.radius = radius;
+        this.x = x;
+        this.y = y;
+        this.ax = 0;
+        this.ay = 0;
+        this.cx = x * canvas.width;
+        this.cy = canvas.height - y * canvas.height;
+        this.nx = [];
+        this.ny = [];
+        this.vx = vx;
+        this.vy = vy;
+        this.fx = fx;
+        this.fy = fy;
+        this.convergence = false;
+    }
+}
+
+class Gnode {
     constructor(name, color="red", radius=7,
         x=Math.random(), y=Math.random(),
         vx=0, vy=0, fx=0, fy=0) {
@@ -69,7 +90,7 @@ class Graph {
     generateRandom(n, density, maxDegree, color=document.getElementById("colorPicker").value, radius=7) {
 
         for(let i = 0; i < n; i++){
-            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+            this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
         }
         if(maxDegree > n - 1){
             maxDegree = n - 1;
@@ -93,7 +114,7 @@ class Graph {
     generateStarfish(arms, armLength, color=document.getElementById("colorPicker").value, radius=7) {
         
         for(let i = 0; i < arms * armLength + 1; i++){
-            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+            this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
         }
         let node = 1;
         for(let arm = 0; arm < arms; arm++){
@@ -109,7 +130,7 @@ class Graph {
     generateFlower(petals, petalSize, color=document.getElementById("colorPicker").value, radius=7) {
         
         for(let i = 0; i < petals * petalSize + 1; i++) {
-            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+            this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
         }
         let node = 1;
         for(let petal = 0; petal < petals; petal++){
@@ -130,7 +151,7 @@ class Graph {
             numNodes += degree ** i;
         }
         for(let i = 0; i < numNodes; i++){
-            this.addNode(new Node("Node " + i.toString(), color=color, radius=radius));
+            this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
         }
 
         let numRoots = numNodes - degree ** depth;
@@ -150,14 +171,14 @@ class Graph {
             const [name1, name2] = line.split(',').map(s => s.trim());
             let node1 = nodeMap.get(name1);
             if (!node1) {
-                node1 = new Node(name1, color, radius);
+                node1 = new Gnode(name1, color, radius);
                 this.addNode(node1);
                 nodeMap.set(name1, node1);
             }
             
             let node2 = nodeMap.get(name2);
             if (!node2) {
-                node2 = new Node(name2, color, radius);
+                node2 = new Gnode(name2, color, radius);
                 this.addNode(node2);
                 nodeMap.set(name2, node2);
             }
@@ -218,7 +239,7 @@ updateForce = function(nodes, r, a, g) {
         });
 
         // Gravity
-        node.fx += g * (canvas.width / 2 - node.cx);
+        node.fx += g * (canvas.width / 2 + 184 - node.cx);
         node.fy += g * (canvas.height / 2 - (canvas.height - node.cy));
 
         // Max
@@ -285,32 +306,7 @@ function togglePause() {
 }
 
 function changeMode(newMode) {
-
-    const randomControls = document.getElementById('randomControls');
-    const starfishControls = document.getElementById('starfishControls');
-    const flowerControls = document.getElementById('flowerControls');
-    const fractalControls = document.getElementById('fractalControls');
-    const edgeListControls = document.getElementById('edgeListControls');
-
-    randomControls.style.display = 'none';
-    edgeListControls.style.display = 'none';
-    starfishControls.style.display = 'none';
-    fractalControls.style.display = 'none';
-    flowerControls.style.display = 'none';
-
-    if(newMode === "random") {
-        randomControls.style.display = 'flex';
-    } else if(newMode === "star") {
-        starfishControls.style.display = 'flex';
-    } else if(newMode === "flower") {
-        flowerControls.style.display = 'flex';
-    } else if(newMode === "fractal") { 
-        fractalControls.style.display = 'flex';
-    } else if(newMode === "edge") {
-        edgeListControls.style.display = 'flex';
-    }
     mode = newMode;
-
 }
 
 function updateGraph() {
@@ -375,18 +371,152 @@ function updateGraph() {
         }
         animationId = requestAnimationFrame(animate);
     }
-
     animate();
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    if(graph){
+        graph.plotGraph();
+    }
+}
+
+function shuffleArray(array) {
+    const newArray = array.slice();
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+}
+
+function plotKmeans(centroids) {
+    centroids.forEach(centroid => {
+        context.beginPath();
+        context.fillStyle = centroid.color;
+        context.arc(centroid.cx, centroid.cy, centroid.radius, 0, 2 * Math.PI);
+        context.fill();
+        context.stroke();
+    });
+}
+
+function kmeans() {
+
+    let colors = shuffleArray(["crimson", "salmon", "deeppink", "coral", "orangered", 
+              "orange", "gold", "khaki", "plum", "mediumorchid", 
+              "darkorchid", "mediumslateblue", "limegreen", "yellowgreen", "darkturquoise", 
+              "steelblue", "deepskyblue", "goldenrod", "chocolate", "forestgreen"]);
+    
+    let numClusters = document.getElementById("clusters").value;
+
+    let pos_x = [];
+    let pos_y = [];
+    graph.getNodes().forEach(node => {
+        pos_x.push(node.x);
+        pos_y.push(node.y);
+    });
+    let avg_x = pos_x.reduce((a, b) => a + b) / pos_x.length;
+    let std_x = Math.sqrt(pos_x.map(x => (x - avg_x) ** 2).reduce((a, b) => a + b) / pos_x.length);
+    let avg_y = pos_y.reduce((a, b) => a + b) / pos_y.length;
+    let std_y = Math.sqrt(pos_y.map(y => (y - avg_y) ** 2).reduce((a, b) => a + b) / pos_y.length);
+    let centroids = [];
+    for(let i = 0; i < numClusters; i++) {
+        let u1 = Math.random();
+        let u2 = Math.random();
+        let z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        let z1 = Math.sqrt(-2.0 * Math.log(u1)) * Math.sin(2.0 * Math.PI * u2);
+        let x = z0 * std_x + avg_x;
+        let y = z1 * std_y + avg_y;
+        centroids.push(new Knode(colors[i], x, y));
+    }
+
+    let convergence = false;
+    const g = 1000000;
+    const value = 0.0001; 
+
+    function mainLoop() {
+        convergence = false;
+        graph.getNodes().forEach(node => {
+            let minDist = Number.MAX_VALUE;
+            let minCentroid;
+            centroids.forEach(centroid => {
+                let dist = Math.sqrt((node.x - centroid.x) ** 2 + (node.y - centroid.y) ** 2);
+                if (dist < minDist) {
+                    minDist = dist;
+                    minCentroid = centroid;
+                    node.color = centroid.color;
+                }});
+            minCentroid.nx.push(node.x);
+            minCentroid.ny.push(node.y);
+        });
+
+        centroids.forEach(centroid => {
+            if (centroid.nx.length === 0) {
+                    centroid.nx.push(centroid.x);
+                    centroid.ny.push(centroid.y);
+            }
+            let sum_x = centroid.nx.reduce((a, b) => a + b, 0);
+            let sum_y = centroid.ny.reduce((a, b) => a + b, 0);
+            let avg_x = sum_x / centroid.nx.length;
+            let avg_y = sum_y / centroid.ny.length;
+            centroid.ax = avg_x;
+            centroid.ay = avg_y;
+            centroid.nx = [];
+            centroid.ny = [];
+        });
+
+        function animate() {
+            centroids.forEach(centroid => {
+                centroid.fx = g * (centroid.ax - centroid.x);
+                centroid.fy = g * (centroid.ay - centroid.y);
+                if (centroid.fx === 0 && centroid.fy === 0) {
+                    centroid.convergence = true;
+                }
+            });
+            updateVel(centroids, 0.0001, 0.90);
+            updatePos(centroids, 0.0001);
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            graph.plotGraph();
+            plotKmeans(centroids);
+            convergence = true;
+            centroids.forEach(centroid => {
+                if (Math.sqrt(centroid.vx ** 2 + centroid.vy ** 2) > value) {
+                    convergence = false;
+                } else {
+                    centroid.x = centroid.ax;
+                    centroid.y = centroid.ay;
+                }
+            });
+
+            if (!convergence) {
+                requestAnimationFrame(animate);
+            } else {
+                end = true;
+                centroids.forEach(centroid => {
+                    console.log(centroid.convergence)
+                    if (!centroid.convergence) {
+                        end = false;
+                    }
+                });
+                if (end) {
+                    console.log("Convergence reached.");
+                } else {
+                    mainLoop();
+                }
+            }
+        }
+        animate(); 
+    }
+    mainLoop(); 
 }
 
 window.onload = function() {
 
     canvas = document.getElementById("graphCanvas");
-    const boxSize = Math.min(window.innerHeight, window.innerWidth - 300) * 0.9;
-    canvas.width = boxSize;
-    canvas.height = boxSize;
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
     context = canvas.getContext("2d");
-    
     changeMode(mode);
     updateGraph();
 }
