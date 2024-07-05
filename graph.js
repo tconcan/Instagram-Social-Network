@@ -260,8 +260,8 @@ function updateForce(nodes, r, a, g) {
         // Repulsion
         nodes.forEach(other => {
             if (node !== other) {
-                let dx = node.x - other.x;
-                let dy = node.y - other.y;
+                let dx = (node.cx - other.cx) / canvas.width;
+                let dy = - (node.cy - other.cy) / canvas.height;
                 let d = Math.sqrt(dx * dx + dy * dy);
                 let f = r / d ** 2;
                 node.fx += f * dx;
@@ -271,8 +271,8 @@ function updateForce(nodes, r, a, g) {
 
         // Attraction
         node.adj.forEach(other => {
-            let dx = node.x - other.x;
-            let dy = node.y - other.y;
+            let dx = (node.cx - other.cx) / canvas.width;
+            let dy = - (node.cy - other.cy) / canvas.height;
             let d = Math.sqrt(dx * dx + dy * dy);
             let f = - a * d;
             node.fx += f * dx;
