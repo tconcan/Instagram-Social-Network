@@ -124,19 +124,25 @@
                                     <div class="tab-content mb-2" id="pills-tabContent">
                                         <div class="tab-pane show active" id="pills-dijkstra" role="tabpanel" aria-labelledby="pills-dijkstra-tab" tabindex="0">
                                             <h6>Dikstra's algorithm</h6>
+                                            <div class="form-check form-switch mb-2">
+                                                <input class="form-check-input" type="checkbox" role="switch" id="weights">
+                                                <label class="form-check-label" for="weights">Weighted edges</label>
+                                            </div>
                                             <label for="dijkstra-color">Color</label>
                                             <input type="color" class="form-control form-control-color w-100" id="dijkstra-color", value="#ffff00">
                                             <div>
-                                                <button class="btn btn-primary w-100 mt-3" onclick="dijkstras()">Go!</button>
+                                                <button id="dijkstra-button" class="btn btn-primary w-100 mt-3" onclick="dijkstras()">Go!</button>
                                             </div>
+                                            <div id="dijkstraDone"></div>
                                         </div>
                                         <div class="tab-pane" id="pills-kmeans" role="tabpanel" aria-labelledby="pills-kmeans-tab" tabindex="1">
                                             <h6>K-means algorithm</h6>
                                             <label for="clusters">Clusters</label>
                                             <input class="form-control" type="number" id="clusters" min="1" max="20" value="5" step="1" oninput="inBounds(event, 1, 20, 1)">
                                             <div>
-                                                <button class="btn btn-primary w-100 mt-3" onclick="kmeans()">Go!</button>
+                                                <button id="kmeans-button" class="btn btn-primary w-100 mt-3" onclick="kmeans()">Go!</button>
                                             </div>
+                                            <div id="kmeansConverge"></div>
                                         </div>
                                     </div>
                                 </li>

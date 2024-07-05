@@ -2,11 +2,17 @@ let animationId;
 let canvas;
 let context;
 let mode = "random";
-let isPaused = false;
+let isPaused = true;
+
+let kmeans_run = false;
+let kmeans_num = 0;
+let centroids;
+
+let dijkstras_run = false;
 let graph;
 
 class Knode {
-    constructor(color, x, y, radius=10, vx=0, vy=0, fx=0, fy=0){
+    constructor(color, x, y, radius=12, vx=0, vy=0, fx=0, fy=0){
         this.color = color;
         this.radius = radius;
         this.x = x;
@@ -32,6 +38,7 @@ class Gnode {
         
         this.name = name;
         this.adj = [];
+        this.edges = [];
         this.degree = 0;
         this.color = color;
         this.radius = radius;
@@ -43,6 +50,9 @@ class Gnode {
         this.vy = vy;
         this.fx = fx;
         this.fy = fy;
+        this.dist = Number.MAX_VALUE;
+        this.prev = null;
+        this.path = [];
     }
 }
 
@@ -52,6 +62,7 @@ class Edge {
         this.node2 = node2;
         this.color = color;
         this.width = width;
+        this.weight = 1;
     }
 }
 
@@ -78,13 +89,29 @@ class Graph {
     addEdge(edge){
         this.edges.push(edge);
         edge.node1.adj.push(edge.node2);
+        edge.node1.edges.push(edge);
         edge.node1.degree += 1;
         edge.node2.adj.push(edge.node1);
+        edge.node2.edges.push(edge);
         edge.node2.degree += 1;
+    }
+
+    setEdgeColor(color) {
+        this.edges.forEach(edge => {
+            edge.color = color;
+        });
     }
 
     getEdges() {
         return this.edges;
+    }
+
+    calculateEdgeWeights() {
+        this.edges.forEach(edge => {
+            let dx = edge.node1.cx - edge.node2.cx;
+            let dy = edge.node1.cy - edge.node2.cy;
+            edge.weight = Math.sqrt(dx ** 2 + dy ** 2);
+        });
     }
 
     generateRandom(n, density, maxDegree, color=document.getElementById("colorPicker").value, radius=7) {
@@ -186,6 +213,12 @@ class Graph {
             this.addEdge(new Edge(node1, node2));
         }
     }
+
+    resetColor(){
+        this.setNodeColor(document.getElementById("colorPicker").value);
+        this.setEdgeColor("black");
+    }
+
     plotGraph() {
         this.edges.forEach(edge => {
             context.beginPath();
@@ -207,7 +240,15 @@ class Graph {
     }
 }
 
-updateForce = function(nodes, r, a, g) {
+function resetGraph() {
+    if(graph){
+        graph.resetColor();
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        graph.plotGraph();
+    }
+}
+
+function updateForce(nodes, r, a, g) {
 
     let f = 0;
     let fmax = 10000000
@@ -302,7 +343,20 @@ function inBounds(event, min, max, int) {
 
 function togglePause() {
     isPaused = !isPaused;
-    document.getElementById('pauseButton').textContent = isPaused ? 'Resume' : 'Pause';
+    document.getElementById('pauseButton').textContent = isPaused ? 'Resume' : 'Pause simulation';
+
+    dijkstra_btn = document.getElementById("dijkstra-button");
+    kmeans_btn = document.getElementById("kmeans-button");
+    if(isPaused){
+        dijkstra_btn.disabled = false;
+        kmeans_btn.disabled = false;
+    } else {
+        dijkstra_btn.disabled = true;
+        kmeans_btn.disabled = true;
+        dijkstras_run = false;
+        kmeans_run = false;
+        resetGraph();
+    }
 }
 
 function changeMode(newMode) {
@@ -310,6 +364,9 @@ function changeMode(newMode) {
 }
 
 function updateGraph() {
+
+    kmeans_run = false;
+    dijkstras_run = false;
 
     cancelAnimationFrame(animationId);
     if (mode === "random") {
@@ -346,6 +403,10 @@ function updateGraph() {
         }
     }
 
+    graph.setNodeColor(document.getElementById("colorPicker").value);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    graph.plotGraph();
+
     function animate() {
         if(!isPaused) {
             nodeColor = document.getElementById("colorPicker").value;
@@ -380,6 +441,9 @@ function resizeCanvas() {
     if(graph){
         graph.plotGraph();
     }
+    if(kmeans_run){
+        plotKmeans(centroids);
+    }
 }
 
 function shuffleArray(array) {
@@ -403,6 +467,13 @@ function plotKmeans(centroids) {
 
 function kmeans() {
 
+    resetGraph();
+
+    kmeans_run = true
+    dijkstras_run = false;
+    document.getElementById("dijkstra-button").disabled = true;
+    document.getElementById("kmeans-button").disabled = true;
+
     let colors = shuffleArray(["crimson", "salmon", "deeppink", "coral", "orangered", 
               "orange", "gold", "khaki", "plum", "mediumorchid", 
               "darkorchid", "mediumslateblue", "limegreen", "yellowgreen", "darkturquoise", 
@@ -420,7 +491,7 @@ function kmeans() {
     let std_x = Math.sqrt(pos_x.map(x => (x - avg_x) ** 2).reduce((a, b) => a + b) / pos_x.length);
     let avg_y = pos_y.reduce((a, b) => a + b) / pos_y.length;
     let std_y = Math.sqrt(pos_y.map(y => (y - avg_y) ** 2).reduce((a, b) => a + b) / pos_y.length);
-    let centroids = [];
+    centroids = [];
     for(let i = 0; i < numClusters; i++) {
         let u1 = Math.random();
         let u2 = Math.random();
@@ -436,12 +507,19 @@ function kmeans() {
     const value = 0.0001; 
 
     function mainLoop() {
+
+        if(!kmeans_run || !isPaused) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            graph.plotGraph();
+            return;
+        }
+
         convergence = false;
         graph.getNodes().forEach(node => {
             let minDist = Number.MAX_VALUE;
             let minCentroid;
             centroids.forEach(centroid => {
-                let dist = Math.sqrt((node.x - centroid.x) ** 2 + (node.y - centroid.y) ** 2);
+                let dist = Math.sqrt((node.cx - centroid.cx) ** 2 + (node.cy - centroid.cy) ** 2);
                 if (dist < minDist) {
                     minDist = dist;
                     minCentroid = centroid;
@@ -467,48 +545,151 @@ function kmeans() {
         });
 
         function animate() {
-            centroids.forEach(centroid => {
-                centroid.fx = g * (centroid.ax - centroid.x);
-                centroid.fy = g * (centroid.ay - centroid.y);
-                if (centroid.fx === 0 && centroid.fy === 0) {
-                    centroid.convergence = true;
-                }
-            });
-            updateVel(centroids, 0.0001, 0.90);
-            updatePos(centroids, 0.0001);
-            context.clearRect(0, 0, canvas.width, canvas.height);
-            graph.plotGraph();
-            plotKmeans(centroids);
-            convergence = true;
-            centroids.forEach(centroid => {
-                if (Math.sqrt(centroid.vx ** 2 + centroid.vy ** 2) > value) {
-                    convergence = false;
-                } else {
-                    centroid.x = centroid.ax;
-                    centroid.y = centroid.ay;
-                }
-            });
-
-            if (!convergence) {
-                requestAnimationFrame(animate);
-            } else {
-                end = true;
+            if(isPaused && kmeans_run) {
                 centroids.forEach(centroid => {
-                    console.log(centroid.convergence)
-                    if (!centroid.convergence) {
-                        end = false;
+                    centroid.fx = g * (centroid.ax - centroid.x);
+                    centroid.fy = g * (centroid.ay - centroid.y);
+                    if (centroid.fx === 0 && centroid.fy === 0) {
+                        centroid.convergence = true;
+                    } else {
+                        centroid.convergence = false;
                     }
                 });
-                if (end) {
-                    console.log("Convergence reached.");
+                updateVel(centroids, 0.0001, 0.90);
+                updatePos(centroids, 0.0001);
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                graph.plotGraph();
+                plotKmeans(centroids);
+                convergence = true;
+                centroids.forEach(centroid => {
+                    if (Math.sqrt(centroid.vx ** 2 + centroid.vy ** 2) > value) {
+                        convergence = false;
+                    } else {
+                        centroid.x = centroid.ax;
+                        centroid.y = centroid.ay;
+                    }
+                });
+
+                if (!convergence) {
+                    requestAnimationFrame(animate);
                 } else {
-                    mainLoop();
+                    end = true;
+                    centroids.forEach(centroid => {
+                        console.log(centroid.convergence)
+                        if (!centroid.convergence) {
+                            end = false;
+                        }
+                    });
+                    if (end) {
+                        console.log("Convergence reached.");
+                        const alertPlaceholder = document.getElementById('kmeansConverge')
+                        const appendAlert = (message, type) => {
+                            const wrapper = document.createElement('div')
+                            wrapper.innerHTML = [
+                                `<div class="alert alert-${type} alert-dismissible mt-3" role="alert">`,
+                                `   <div>${message}</div>`,
+                                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="resetGraph()"></button>',
+                                '</div>'
+                            ].join('')
+                                alertPlaceholder.append(wrapper)
+                        document.getElementById("dijkstra-button").disabled = true;
+                        document.getElementById("kmeans-button").disabled = true;
+                        
+                        }
+
+                        appendAlert('Converged!', 'success');
+                    } else {
+                        mainLoop();
+                    }
                 }
             }
         }
         animate(); 
     }
     mainLoop(); 
+
+}
+
+function pause(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+async function dijkstras() {
+
+    resetGraph();
+    document.getElementById("dijkstra-button").disabled = true;
+    document.getElementById("kmeans-button").disabled = true;
+    dijkstras_run = true;
+    kmeans_run = false;
+    weighted = document.getElementById("weights").checked;
+    color = document.getElementById("dijkstra-color").value;
+
+    if(weighted){
+        graph.calculateEdgeWeights();
+    }
+
+    start = graph.getNodes()[0];
+
+    graph.getNodes().forEach(node => {
+        node.dist = Number.MAX_VALUE;
+        node.prev = null;
+    });
+    
+    start.dist = 0;
+
+    let unvisited = new Set(graph.getNodes());
+    while(unvisited.size > 0 && isPaused && dijkstras_run) {
+        let minDist = Number.MAX_VALUE;
+        let minNode = null;
+        unvisited.forEach(node => {
+            if(node.dist < minDist) {
+                minDist = node.dist;
+                minNode = node;
+            }
+        });
+
+        if(minNode === null){
+            break;
+        }
+
+        unvisited.delete(minNode);
+        minNode.color = color;
+
+        for (let neighbor of minNode.adj) {
+            let edge = minNode.edges.find(edge => (edge.node1 === minNode && edge.node2 === neighbor) || (edge.node1 === neighbor && edge.node2 === minNode));
+            let dist = minNode.dist + edge.weight;
+            if(dist < neighbor.dist) {
+                await pause(100);
+                if(neighbor.prev !== null){
+                    prev_edge = neighbor.edges.find(edge => (edge.node1 === neighbor.prev && edge.node2 === neighbor) || (edge.node1 === neighbor && edge.node2 === neighbor.prev));
+                    prev_edge.color = "black";
+                }
+                edge.color = color;                
+                neighbor.color = color;
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                graph.plotGraph();
+                neighbor.dist = dist;
+                neighbor.prev = minNode;
+            }
+        }
+    }
+
+    const alertPlaceholder = document.getElementById('dijkstraDone')
+    const appendAlert = (message, type) => {
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = [
+            `<div class="alert alert-${type} alert-dismissible mt-3" role="alert">`,
+            `   <div>${message}</div>`,
+            '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="resetGraph()"></button>',
+            '</div>'
+        ].join('')
+            alertPlaceholder.append(wrapper)
+    }
+
+    document.getElementById("kmeans-button").disabled = false;
+    document.getElementById("dijkstra-button").disabled = false;
+    appendAlert('Done!', 'success');
+
 }
 
 window.onload = function() {
@@ -517,6 +698,7 @@ window.onload = function() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     context = canvas.getContext("2d");
+    togglePause();
     changeMode(mode);
     updateGraph();
 }
