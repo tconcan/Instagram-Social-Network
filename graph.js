@@ -592,8 +592,8 @@ function kmeans() {
                                 '</div>'
                             ].join('')
                                 alertPlaceholder.append(wrapper)
-                        document.getElementById("dijkstra-button").disabled = true;
-                        document.getElementById("kmeans-button").disabled = true;
+                        document.getElementById("dijkstra-button").disabled = false;
+                        document.getElementById("kmeans-button").disabled = false;
                         
                         }
 
