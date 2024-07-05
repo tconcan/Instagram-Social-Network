@@ -114,9 +114,9 @@ class Graph {
         });
     }
 
-    generateRandom(n, density, maxDegree, color=document.getElementById("colorPicker").value, radius=7) {
+    generateRandom(n, density, maxDegree, s=0, color=document.getElementById("colorPicker").value, radius=7) {
 
-        for(let i = 0; i < n; i++){
+        for(let i = s; i < n + s; i++){
             this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
         }
         if(maxDegree > n - 1){
@@ -126,8 +126,8 @@ class Graph {
         let j = 0;
         let i = 0;  
         while(i < numEdges && j < numEdges * 100){
-            let node1 = this.nodes[Math.floor(Math.random() * n)];
-            let node2 = this.nodes[Math.floor(Math.random() * n)];
+            let node1 = this.nodes[Math.floor(Math.random() * n) + s];
+            let node2 = this.nodes[Math.floor(Math.random() * n) + s];
             if (node1 !== node2 && !node1.adj.includes(node2) && node1.degree < maxDegree && node2.degree < maxDegree) {
                 this.addEdge(new Edge(node1, node2));
             } else {
@@ -186,6 +186,44 @@ class Graph {
             for(let j = 0; j < degree; j++){
                 this.addEdge(new Edge(this.nodes[i], this.nodes[i * degree + j + 1]));
             }
+        }
+
+    }
+
+    generateMini(size, density, amount, color=document.getElementById("colorPicker").value, radius=7) {
+        
+        for(let i = 0; i < amount; i++){
+            this.generateRandom(size, density, size - 1, i*size, color, radius);
+        }
+
+    }
+
+    generateClusters(size, amount, variability, color=document.getElementById("colorPicker").value, radius=7) {
+        
+        let con = Math.floor(size * amount / 10);
+        let idx = 0;
+        
+        for(let i = 0; i < amount; i++){
+            let cluster_size = size + Math.floor(size * ((Math.random() - 0.5) * 2 * variability));
+            console.log(cluster_size)
+            this.generateRandom(cluster_size, 0.7, size - 1, idx, color, radius);
+            idx += cluster_size;
+        }
+
+        let j = 0;
+        let i = 0;  
+        while(i < con && j < con * 100){
+            let n1 = Math.floor(Math.random() * this.nodes.length);
+            let n2 = Math.floor(Math.random() * this.nodes.length);
+            let node1 = this.nodes[n1];
+            let node2 = this.nodes[n2];
+            if (node1 !== node2 && !node1.adj.includes(node2)) {
+                this.addEdge(new Edge(node1, node2));
+            } else {
+                i--; 
+            }
+            i++;
+            j++;
         }
 
     }
@@ -390,6 +428,18 @@ function updateGraph() {
         const degree = parseInt(document.getElementById("degree").value);
         graph = new Graph();
         graph.generateFractal(depth, degree);
+    } else if (mode === "mini") {
+        const size = parseInt(document.getElementById("mini-size").value);
+        const density = parseFloat(document.getElementById("mini-density").value);
+        const amount = parseInt(document.getElementById("mini-amount").value);
+        graph = new Graph();
+        graph.generateMini(size, density, amount);
+    } else if (mode === "clusters") {
+        const size = parseInt(document.getElementById("cluster-size").value);
+        const amount = parseInt(document.getElementById("cluster-amount").value);
+        const variablity = parseFloat(document.getElementById("variability").value);
+        graph = new Graph();
+        graph.generateClusters(size, amount, variablity);
     } else if (mode === "edge") {
         const edgeList = document.getElementById("edges").value.trim();
         if(!verifyEdgeList(edgeList)) {
@@ -622,23 +672,23 @@ async function dijkstras() {
     dijkstras_run = true;
     kmeans_run = false;
     weighted = document.getElementById("weights").checked;
-    color = document.getElementById("dijkstra-color").value;
+    color = document.getElementById("dijkstra-color").value
 
     if(weighted){
         graph.calculateEdgeWeights();
     }
 
-    start = graph.getNodes()[0];
 
     graph.getNodes().forEach(node => {
         node.dist = Number.MAX_VALUE;
         node.prev = null;
     });
     
+    start = graph.getNodes()[Math.floor(Math.random() * graph.nodes.length) - 1];
     start.dist = 0;
-
     let unvisited = new Set(graph.getNodes());
     while(unvisited.size > 0 && isPaused && dijkstras_run) {
+        let speed =  10 ** (3 - document.getElementById("dijkstra-speed").value);
         let minDist = Number.MAX_VALUE;
         let minNode = null;
         unvisited.forEach(node => {
@@ -653,13 +703,12 @@ async function dijkstras() {
         }
 
         unvisited.delete(minNode);
-        minNode.color = color;
 
         for (let neighbor of minNode.adj) {
             let edge = minNode.edges.find(edge => (edge.node1 === minNode && edge.node2 === neighbor) || (edge.node1 === neighbor && edge.node2 === minNode));
             let dist = minNode.dist + edge.weight;
             if(dist < neighbor.dist) {
-                await pause(100);
+                await pause(speed);
                 if(neighbor.prev !== null){
                     prev_edge = neighbor.edges.find(edge => (edge.node1 === neighbor.prev && edge.node2 === neighbor) || (edge.node1 === neighbor && edge.node2 === neighbor.prev));
                     prev_edge.color = "black";
