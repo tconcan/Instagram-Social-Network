@@ -3,6 +3,7 @@ let canvas;
 let context;
 let mode = "random";
 let isPaused = true;
+let minDim = Math.min(window.innerWidth, window.innerHeight);
 
 let kmeans_run = false;
 let kmeans_num = 0;
@@ -225,7 +226,129 @@ class Graph {
             i++;
             j++;
         }
+    }
 
+    generateLattice(size, shape, color=document.getElementById("colorPicker").value, radius=7) {
+
+        if (shape === "triangle") {
+            for (let i = 0; i < size * (size + 1) / 2; i++) {
+                this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
+            }
+
+            let k = 0;
+            let m = size;
+            for (let j = 0; j < size; j++){
+                for (let i = 0; i < size - j; i++){
+                    if(i < size - j - 1){
+                        this.addEdge(new Edge(graph.nodes[k], graph.nodes[k + 1]));
+                    }
+                    if(m > 1){
+                        if(i > 0){
+                            this.addEdge(new Edge(graph.nodes[k], graph.nodes[k + m - 1]));
+                        }
+                        if(i < size - j - 1){
+                            this.addEdge(new Edge(graph.nodes[k], graph.nodes[k + m]));
+                        }
+                    }
+                    k++;
+                }
+                m--;
+            }
+        }
+        
+        if (shape === "square") {
+
+            for (let i = 0; i < size ** 2; i++) {
+                this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
+            }
+
+            for (let j = 0; j < size; j++){
+                for (let i = 0; i < size; i++){
+                    if(i < size - 1){
+                        this.addEdge(new Edge(graph.nodes[j * size + i], graph.nodes[j * size + i + 1]));
+                    }
+                    if(j < size - 1){
+                        this.addEdge(new Edge(graph.nodes[j * size + i], graph.nodes[(j + 1) * size + i]));
+                    }
+                }
+            }
+        }
+
+        if (shape === "hexagon") {
+            
+            let row = size * 2 + 1;
+            let count = 0;
+            
+            while(row <= size * 4 - 1){
+                for(let i = 0; i < row; i++){
+                    this.addNode(new Gnode("Node " + count.toString(), color=color, radius=radius));
+                    if(i > 0){
+                        this.addEdge(new Edge(this.nodes[count], this.nodes[count - 1]));
+                    }
+                    count += 1;
+                }
+                row += 2
+            }
+            row -= 2;
+
+            while(row >= size * 2 + 1){
+                for(let i = 0; i < row; i++){
+                    this.addNode(new Gnode("Node " + count.toString(), color=color, radius=radius));
+                    if(i > 0){
+                        this.addEdge(new Edge(this.nodes[count], this.nodes[count - 1]));
+                    }
+                    count += 1;
+                }
+                row -= 2
+            }
+
+            let end = graph.nodes.length - 1;
+            row = size * 2 + 1;
+            let done = row;
+            let node1 = 0;
+            let node2 = end;
+        
+            while(row < size * 4 - 1){
+                while(node1 < done){
+                    this.addEdge(new Edge(this.nodes[node1], this.nodes[node1 + row + 1]));
+                    this.addEdge(new Edge(this.nodes[node2], this.nodes[node2 - row - 1]));
+                    node1 += 2;
+                    node2 -= 2;
+                }
+                row += 2;
+                done += row;
+                node1 -= 1;
+                node2 += 1;
+            }
+            while(node1 < done){
+                this.addEdge(new Edge(this.nodes[node1], this.nodes[node1 + row]));
+                node1 += 2;
+            }
+        }
+
+    }
+
+    generateMobius(length, width, color=document.getElementById("colorPicker").value, radius=7) {
+
+        for (let i = 0; i < length * width; i++) {
+            this.addNode(new Gnode("Node " + i.toString(), color=color, radius=radius));
+        }
+
+        for (let j = 0; j < length; j++){
+            for (let i = 0; i < width; i++){
+                if(i < width - 1){
+                    this.addEdge(new Edge(graph.nodes[j * width + i], graph.nodes[j * width + i + 1]));
+                }
+                if(j < length - 1){
+                    this.addEdge(new Edge(graph.nodes[j * width + i], graph.nodes[(j + 1) * width + i]));
+                }
+            }
+        }
+
+        let end = graph.nodes.length;
+        for(let i = 0; i < width; i++){
+            this.addEdge(new Edge(graph.nodes[i], graph.nodes[end - i - 1]));
+        }
     }
 
     generateEdgeList(edgeList, color=document.getElementById("colorPicker").value, radius=7) {
@@ -440,6 +563,21 @@ function updateGraph() {
         const variablity = parseFloat(document.getElementById("variability").value);
         graph = new Graph();
         graph.generateClusters(size, amount, variablity);
+    } else if (mode === "lattice") {
+        const size = parseInt(document.getElementById("lattice-size").value);
+        graph = new Graph();
+        if (document.getElementById("triangle").checked) {
+            graph.generateLattice(size, "triangle");
+        } else if (document.getElementById("square").checked) {
+            graph.generateLattice(size, "square");
+        } else {
+            graph.generateLattice(size, "hexagon");
+        }
+    } else if (mode === "mobius") {
+        const length = parseInt(document.getElementById("mobius-length").value);
+        const width = parseInt(document.getElementById("mobius-width").value);
+        graph = new Graph();
+        graph.generateMobius(length, width);
     } else if (mode === "edge") {
         const edgeList = document.getElementById("edges").value.trim();
         if(!verifyEdgeList(edgeList)) {
@@ -483,17 +621,6 @@ function updateGraph() {
         animationId = requestAnimationFrame(animate);
     }
     animate();
-}
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    if(graph){
-        graph.plotGraph();
-    }
-    if(kmeans_run){
-        plotKmeans(centroids);
-    }
 }
 
 function shuffleArray(array) {
@@ -739,6 +866,18 @@ async function dijkstras() {
     document.getElementById("dijkstra-button").disabled = false;
     appendAlert('Done!', 'success');
 
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    minDim = Math.min(window.innerWidth, window.innerHeight);
+    if(graph){
+        graph.plotGraph();
+    }
+    if(kmeans_run){
+        plotKmeans(centroids);
+    }
 }
 
 window.onload = function() {

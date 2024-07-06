@@ -45,6 +45,12 @@
                                 <button class="nav-link" id="pills-clusters-tab" data-bs-toggle="pill" data-bs-target="#pills-clusters" type="button" role="tab" aria-controls="pills-clusters" aria-selected="false" onclick="changeMode('clusters')">Clusters</button>
                             </li>
                             <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pills-lattice-tab" data-bs-toggle="pill" data-bs-target="#pills-lattice" type="button" role="tab" aria-controls="pills-lattice" aria-selected="false" onclick="changeMode('lattice')">Lattice</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pills-mobius-tab" data-bs-toggle="pill" data-bs-target="#pills-mobius" type="button" role="tab" aria-controls="pills-mobius" aria-selected="false" onclick="changeMode('mobius')">Mobius</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="pills-edge-tab" data-bs-toggle="pill" data-bs-target="#pills-edge" type="button" role="tab" aria-controls="pills-edge" aria-selected="false" onclick="changeMode('edge')">Edge list</button>
                             </li>
                         </ul>
@@ -92,8 +98,8 @@
                                         <label for="mini-amount" class="mt-2">Amount</label>
                                         <input class="form-control" type="number" id="mini-amount" min="1" max="100" value="50" step="1" oninput="inBounds(event, 1, 100, 1)">
                                     </div>
-                                    <div class="tab-pane" id="pills-clusters" role="tabpanel" aria-labelledby="pills-clusters-tab" tabindex="4">
-                                        <h6>Clusters graph controls</h6>
+                                    <div class="tab-pane" id="pills-clusters" role="tabpanel" aria-labelledby="pills-clusters-tab" tabindex="5">
+                                        <h6>Clusters controls</h6>
                                         <label for="cluster-size">Cluster size</label>
                                         <input class="form-control" type="number" id="cluster-size" min="1" max="50" value="25" step="1" oninput="inBounds(event, 1, 50, 1)">
                                         <label for="variability" class="mt-2">Size variablity</label>
@@ -101,7 +107,31 @@
                                         <label for="cluster-amount" class="mt-2">Cluster amount</label>
                                         <input class="form-control" type="number" id="cluster-amount" min="1" max="20" value="10" step="1" oninput="inBounds(event, 1, 20, 1)">
                                     </div>
-                                    <div class="tab-pane" id="pills-edge" role="tabpanel" aria-labelledby="pills-edge-tab" tabindex="6">
+                                    <div class="tab-pane" id="pills-mobius" role="tabpanel" aria-labelledby="pills-mobius-tab" tabindex="6">
+                                        <h6>Mobius controls</h6>
+                                        <label for="mobius-length">Length</label>
+                                        <input class="form-control" type="number" id="mobius-length" min="3" max="0" value="25" step="1" oninput="inBounds(event, 4, 50, 1)">
+                                        <label for="mobius-width" class="mt-2">Width</label>
+                                        <input class="form-control" type="number" id="mobius-width" min="2" max="20" value="10" step="1" oninput="inBounds(event, 2, 20, 1)">
+                                    </div>
+                                    <div class="tab-pane" id="pills-lattice" role="tabpanel" aria-labelledby="pills-lattice-tab" tabindex="7">
+                                        <h6>Lattice controls</h6>
+                                        <label for="lattice-size">Size</label>
+                                        <input class="form-control" type="number" id="lattice-size" min="1" max="30" value="10" step="1" oninput="inBounds(event, 1, 30, 1)">
+                                        <div class="form-check mt-3">
+                                            <input class="form-check-input" name="lattice-structure" type="radio" id="triangle" checked>
+                                            <label class="form-check-label" for="triangle">Triangle</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" name="lattice-structure" type="radio" id="square">
+                                            <label class="form-check-label" for="square">Square</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" name="lattice-structure" type="radio" id="hexagon">
+                                            <label class="form-check-label" for="hexagon">Hexagon</label>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane" id="pills-edge" role="tabpanel" aria-labelledby="pills-edge-tab" tabindex="8">
                                         <h6>Edge list controls</h6>
                                         <div class="input-group">
                                             <textarea id="edges" class="form-control bg-body-secondary" placeholder="Enter edges in the following format:&#10Node 1, Node 2&#10Node 2, Node 3&#10Node 3, Node 1" style="resize: vertical; max-height: 500px;" rows="6" cols="35"></textarea>
