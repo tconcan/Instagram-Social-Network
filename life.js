@@ -7,12 +7,13 @@ let radius = 5;
 let isPaused = true;
 
 let gradient = [];
-for(let i = 0; i <= 255; i += 15){
+for(let i = 0; i < 255; i += 255 / 10){
     gradient.push([255, i, 0]);
 }
-for(let i = 255; i >= 0; i -= 15){
+for(let i = 255; i >= 0; i -= 255 / 10){
     gradient.push([i, 255, 0]);
 }
+console.log(gradient);
 
 let dynamicData = {
     labels: [],
@@ -81,7 +82,7 @@ class Habitat {
         for (let i = 0; i < colors.length; i++) {
             let a1 = []
             for(let j = 0; j < colors.length; j++) {
-                a1.push((Math.random() - 0.5) * 2);
+                a1.push(Math.round(-10 + (Math.floor(Math.random() * 21))) / 10);
             }
             this.forceArray.push(a1);
         }
@@ -161,6 +162,11 @@ class Habitat {
         this.particles.forEach(particle => {
             particle.vx = (particle.vx + this.step * particle.fx) * damping;
             particle.vy = (particle.vy + this.step * particle.fy) * damping;
+            if(Math.sqrt(particle.vx ** 2 + particle.vy ** 2) > 100000) {
+                particle.vx = particle.vx / Math.sqrt(particle.vx ** 2 + particle.vy ** 2) * 100000;
+                particle.vy = particle.vy / Math.sqrt(particle.vx ** 2 + particle.vy ** 2) * 100000;
+                console.log("here");
+            }
             energy += (particle.vx ** 2 + particle.vy ** 2) / 2;
         });
         this.ke = energy / 10000000;
@@ -228,7 +234,7 @@ function updateChartData(newData) {
 }
 
 function shuffleHabitat() {
-    habitat.randomDistribution(1000);
+    habitat.randomDistribution(document.getElementById('particleCount').value);
 }
 
 function updateHabitat() {
@@ -255,7 +261,7 @@ function updateHabitat() {
     animate();
 }
 
-function setColor(i, j, inc=1/5) {
+function setColor(i, j, inc=0.1) {
     let block = document.getElementById('f-' + i + '' + j);
     if(inc){
         habitat.forceArray[i][j] += inc;
@@ -266,7 +272,7 @@ function setColor(i, j, inc=1/5) {
             habitat.forceArray[i][j] = 1;
         }
     }
-    let idx = Math.floor(((habitat.forceArray[i][j] + 1) / 2) * gradient.length);
+    let idx = Math.round((habitat.forceArray[i][j] + 1) * 10);
     console.log(idx);
     let r = gradient[idx][0];
     let g = gradient[idx][1];
