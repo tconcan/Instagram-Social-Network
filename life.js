@@ -103,7 +103,7 @@ class Habitat {
 
         let omega = 50; // border
         let threshold = 30; // v threshold
-        let alpha = radius * 15; // max dist
+        let alpha = radius * document.getElementById('radius').value; // max dist
         let beta = radius * 5; // min dist
         let mag = 10 ** document.getElementById('forceMag').value;
 
@@ -165,7 +165,6 @@ class Habitat {
             if(Math.sqrt(particle.vx ** 2 + particle.vy ** 2) > 100000) {
                 particle.vx = particle.vx / Math.sqrt(particle.vx ** 2 + particle.vy ** 2) * 100000;
                 particle.vy = particle.vy / Math.sqrt(particle.vx ** 2 + particle.vy ** 2) * 100000;
-                console.log("here");
             }
             let increment = (particle.vx ** 2 + particle.vy ** 2) / 20000000;
             increment = Math.min(increment, 500);

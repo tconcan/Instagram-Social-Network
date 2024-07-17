@@ -50,6 +50,10 @@
                           <input class="form-control" type="number" id="particleCount" min="1" max="1500" value="1000" step="1" oninput="inBounds(event, 1, 1500, 1)">
                         </div>
                         <div>
+                          <label for="radius">Interaction radius</label>
+                          <input class="form-range" type="range" id="radius" min="6" max="100" value="15" step="0.01">
+                        </div>
+                        <div>
                           <label for="forceMag">Force magnitude</label>
                           <input class="form-range" type="range" id="forceMag" min="1" max="5" value="4" step="0.01">
                         </div>
