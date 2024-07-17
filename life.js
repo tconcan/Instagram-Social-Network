@@ -167,9 +167,11 @@ class Habitat {
                 particle.vy = particle.vy / Math.sqrt(particle.vx ** 2 + particle.vy ** 2) * 100000;
                 console.log("here");
             }
-            energy += (particle.vx ** 2 + particle.vy ** 2) / 2;
+            let increment = (particle.vx ** 2 + particle.vy ** 2) / 20000000;
+            increment = Math.min(increment, 500);
+            energy += increment;
         });
-        this.ke = energy / 10000000;
+        this.ke = energy;
     }
 
     updatePosition() {
